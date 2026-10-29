@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Settings</h1>
+    <p class="muted">Detection thresholds and business rules. Changes apply on the next scan.</p>
+  </div>
+</div>
+<form method="post" action="/settings" class="form settings-form">
+  {{ csrf_field() }}
+  {% for group, defs in groups %}
+  <fieldset class="card" {{ 'disabled' if not is_admin }}>
+    <legend>{{ group }}</legend>
+    {% for d in defs %}
+    <div class="setting">
+      {% if d.type == "bool" %}
+        <label class="check"><input type="checkbox" name="{{ d.key }}" {{ 'checked' if values[d.key] }}> {{ d.label }}</label>
+      {% elif d.choices %}
+        <label>{{ d.label }}
+          <select name="{{ d.key }}">{% for v, label in d.choices %}<option value="{{ v }}" {{ 'selected' if values[d.key] == v }}>{{ label }}</option>{% endfor %}</select>
+        </label>
+      {% elif d.type in ("textarea", "json") %}
+        <label>{{ d.label }}
+          <textarea name="{{ d.key }}" rows="{{ 8 if d.type == 'json' else 4 }}" class="mono">{{ values[d.key]|pretty if d.type == "json" else values[d.key] }}</textarea>
+        </label>
+      {% else %}
+        <label>{{ d.label }}
+          <input name="{{ d.key }}" value="{{ values[d.key] }}" {% if d.type in ("int", "float") %}type="number" step="{{ '1' if d.type == 'int' else 'any' }}"{% if d.min is not none %} min="{{ d.min }}"{% endif %}{% if d.max is not none %} max="{{ d.max }}"{% endif %}{% endif %}>
+        </label>
+      {% endif %}
+      {% if d.help %}<p class="small muted">{{ d.help }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </fieldset>
+  {% endfor %}
+  {% if is_admin %}<button class="btn" type="submit">Save settings</button>{% endif %}
+</form>
+{% endblock %}

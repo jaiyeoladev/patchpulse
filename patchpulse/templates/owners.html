@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "macros.html" import empty %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Owner chase list</h1>
+    <p class="muted">Who owns what is open and overdue. Use it in the weekly remediation call; export each owner's list as CSV.</p>
+  </div>
+</div>
+{% if rows %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Owner</th><th class="num">Open findings</th><th class="num">Overdue</th><th class="num">Oldest overdue</th><th class="num">Critical</th><th class="num">High</th><th class="num">KEV</th><th class="num">Devices</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  {% set owner_q = "__none__" if r.owner == "Unassigned" else r.owner %}
+  <tr>
+    <td><a href="/findings?owner={{ owner_q|urlencode }}"><strong>{{ r.owner }}</strong></a></td>
+    <td class="num">{{ r.open }}</td>
+    <td class="num {{ 'text-danger' if r.overdue }}">{{ r.overdue }}</td>
+    <td class="num">{{ (r.oldest_overdue ~ "d") if r.overdue else "—" }}</td>
+    <td class="num">{{ r.critical }}</td>
+    <td class="num">{{ r.high }}</td>
+    <td class="num {{ 'text-danger' if r.kev }}">{{ r.kev }}</td>
+    <td class="num">{{ r.devices }}</td>
+    <td class="nowrap"><a class="btn btn-ghost btn-sm" href="/findings.csv?owner={{ owner_q|urlencode }}">CSV</a> <a class="btn btn-ghost btn-sm" href="/findings?owner={{ owner_q|urlencode }}&overdue=1&sort=due">Overdue</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+{{ empty("Nothing open. Every finding is resolved or accepted.") }}
+{% endif %}
+<section class="card">
+  <h2>Ownership rules</h2>
+  <pre class="code">{{ owner_rules }}</pre>
+  <p class="small muted">Edit in <a href="/settings">Settings</a>. Rules set the owner of new findings; change an owner on any finding and it stays changed.</p>
+</section>
+{% endblock %}

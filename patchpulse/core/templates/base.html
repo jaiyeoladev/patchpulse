@@ -1,0 +1,64 @@
+{% from "macros.html" import csrf_field with context %}
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ title or "Dashboard" }}{% endblock %} · {{ spec.name }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="/static/icon-{{ spec.slug }}.svg" type="image/svg+xml">
+  {% block head %}{% endblock %}
+</head>
+<body data-app="{{ spec.slug }}">
+{% if user %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <img src="/static/icon-{{ spec.slug }}.svg" alt="" width="26" height="26">
+      <span>{{ spec.name }}</span>
+    </a>
+    <span class="mode mode-{{ 'demo' if config.demo_mode else 'live' }}" title="{{ 'Synthetic demo data' if config.demo_mode else 'Connected to your tenant (read-only)' }}">{{ "Demo data" if config.demo_mode else "Live · read-only" }}</span>
+    <nav class="nav" aria-label="Main">
+      <a href="/" class="{{ 'active' if path == '/' }}">Dashboard</a>
+      {% for item in spec.nav %}
+      <a href="{{ item.href }}" class="{{ 'active' if path.startswith(item.href) }}">{{ item.label }}</a>
+      {% endfor %}
+      <a href="/findings" class="{{ 'active' if path.startswith('/findings') }}">Findings</a>
+      <a href="/scans" class="{{ 'active' if path.startswith('/scans') }}">Scans</a>
+      <a href="/settings" class="{{ 'active' if path.startswith('/settings') }}">Settings</a>
+      <details class="menu">
+        <summary>More</summary>
+        <div class="menu-body">
+          <a href="/rules">Detection rules</a>
+          <a href="/connection">Connection &amp; permissions</a>
+          <a href="/audit">Audit log</a>
+          <a href="/report" target="_blank" rel="noopener">Printable report</a>
+          <a href="/findings.csv">Export findings (CSV)</a>
+        </div>
+      </details>
+    </nav>
+    <div class="userbox">
+      <span class="muted small">{{ user.name }} · {{ "Admin" if is_admin else "Read-only" }}</span>
+      <form method="post" action="/logout">{{ csrf_field() }}<button class="btn btn-ghost btn-sm" type="submit">Sign out</button></form>
+    </div>
+  </div>
+</header>
+{% endif %}
+<main class="container">
+  {% if user and is_admin and config.warnings %}
+  <div class="alert alert-warn">{% for w in config.warnings %}<div>{{ w }}</div>{% endfor %}</div>
+  {% endif %}
+  {% for level, message in flashes %}
+  <div class="alert alert-{{ level }}" role="status">{{ message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+{% if user %}
+<footer class="footer container">
+  <span>{{ spec.name }} — {{ spec.tagline }}</span>
+  <span class="muted">Read-only by design · last scan {{ last_scan.started_at|ago if last_scan else "never" }}</span>
+</footer>
+{% endif %}
+<script src="/static/app.js"></script>
+</body>
+</html>

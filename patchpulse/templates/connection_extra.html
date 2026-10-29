@@ -1,0 +1,12 @@
+<section class="card">
+  <h2>CrowdStrike Falcon (optional)</h2>
+  <dl class="kv">
+    <dt>Status</dt><dd>{% if config.env("FALCON_CLIENT_ID") and config.env("FALCON_CLIENT_SECRET") %}<span class="text-ok">Configured</span> · cloud <code>{{ config.env("FALCON_BASE_URL", "us-1") or "us-1" }}</code>{% else %}<span class="muted">Not configured</span>{% endif %}</dd>
+  </dl>
+  <ol class="steps">
+    <li>In the Falcon console open <strong>Support and resources → API clients and keys</strong> and create an API client.</li>
+    <li>Give it <strong>read-only</strong> scopes: <code>Hosts: Read</code> and <code>Vulnerabilities: Read</code> (Spotlight).</li>
+    <li>Set <code>FALCON_CLIENT_ID</code>, <code>FALCON_CLIENT_SECRET</code> and <code>FALCON_BASE_URL</code> (<code>us-1</code>, <code>us-2</code>, <code>eu-1</code>, <code>us-gov-1</code> or a full URL) and restart.</li>
+  </ol>
+  <p class="small muted">Intune only needs the Microsoft Graph permission listed above. Either source works on its own; together they show EDR coverage gaps. Scanner CSVs can be <a href="/import">imported</a> at any time.</p>
+</section>

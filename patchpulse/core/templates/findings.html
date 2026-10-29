@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "macros.html" import findings_table, pager, empty, csrf_field with context %}
+{% block title %}Findings{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Findings</h1>
+    <p class="muted">{{ total }} matching · issues are auto-resolved when a scan no longer detects them</p>
+  </div>
+  <a class="btn btn-ghost" href="/findings.csv?{{ qs }}">Export CSV</a>
+</div>
+
+<form class="filters card" method="get" action="/findings">
+  <label>Status
+    <select name="status">
+      <option value="active" {{ 'selected' if filters.status == 'active' }}>Active (open + in progress)</option>
+      {% for s in STATUSES %}<option value="{{ s }}" {{ 'selected' if filters.status == s }}>{{ STATUS_LABELS[s] }}</option>{% endfor %}
+      <option value="all" {{ 'selected' if filters.status == 'all' }}>All</option>
+    </select>
+  </label>
+  <label>Severity
+    <select name="severity">
+      <option value="">Any</option>
+      {% for s in SEVERITIES %}<option value="{{ s }}" {{ 'selected' if filters.severity == s }}>{{ s|capitalize }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Rule
+    <select name="rule">
+      <option value="">Any</option>
+      {% for rid, r in spec.rules.items() %}<option value="{{ rid }}" {{ 'selected' if filters.rule_id == rid }}>{{ rid }} · {{ r.title }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Owner
+    <select name="owner">
+      <option value="">Anyone</option>
+      <option value="__none__" {{ 'selected' if filters.owner == '__none__' }}>Unassigned</option>
+      {% for o in owners %}<option value="{{ o }}" {{ 'selected' if filters.owner == o }}>{{ o }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Sort
+    <select name="sort">
+      {% for k, label in [("severity","Severity"),("cost","Monthly cost"),("due","Due date"),("newest","Newest"),("entity","Entity name")] %}
+      <option value="{{ k }}" {{ 'selected' if filters.sort == k }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="grow">Search <input name="q" value="{{ filters.q }}" placeholder="Name, UPN, CVE…"></label>
+  <label class="check"><input type="checkbox" name="overdue" value="1" {{ 'checked' if filters.overdue }}> Overdue only</label>
+  <button class="btn" type="submit">Apply</button>
+  <a class="btn btn-ghost" href="/findings">Reset</a>
+</form>
+
+{% if rows %}
+  {% if is_admin %}
+  <form id="bulk-form" class="bulk card" method="post" action="/findings/bulk">
+    {{ csrf_field() }}
+    <input type="hidden" name="back" value="/findings?{{ qs }}">
+    <strong>With selected:</strong>
+    <select name="action" data-bulk-action>
+      <option value="assign">Assign owner</option>
+      <option value="acknowledge">Mark in progress</option>
+      <option value="resolve">Mark resolved</option>
+      <option value="accept">Accept risk</option>
+      <option value="reopen">Reopen</option>
+    </select>
+    <input name="owner" list="owners" placeholder="Owner (team or person)" data-bulk-field="assign">
+    <input name="justification" placeholder="Justification (10+ chars)" data-bulk-field="accept" hidden>
+    <input name="accepted_until" type="date" min="{{ today }}" max="{{ max_accept_date }}" value="{{ default_accept_date }}" data-bulk-field="accept" hidden>
+    <button class="btn btn-sm" type="submit">Apply</button>
+    <datalist id="owners">{% for o in owners %}<option value="{{ o }}">{% endfor %}</datalist>
+  </form>
+  {% endif %}
+  {{ findings_table(rows, show_select=is_admin, show_cost=true) }}
+  {{ pager(page, pages, qs) }}
+{% else %}
+  {{ empty("No findings match these filters.") }}
+{% endif %}
+{% endblock %}

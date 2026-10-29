@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "macros.html" import pager %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Audit log</h1>
+    <p class="muted">Sign-ins, scans, exports, setting changes and every action taken on a finding.</p>
+  </div>
+</div>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr><td class="nowrap">{{ r.ts|dtt }}</td><td>{{ r.actor }}</td><td><code>{{ r.action }}</code></td><td>{{ r.target }}</td><td class="small">{{ r.detail }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{{ pager(page, pages) }}
+{% endblock %}

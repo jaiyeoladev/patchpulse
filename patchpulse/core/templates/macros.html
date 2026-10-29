@@ -1,0 +1,71 @@
+{% macro sev(s) -%}
+<span class="badge sev-{{ s }}">{{ s|capitalize }}</span>
+{%- endmacro %}
+
+{% macro status(s) -%}
+<span class="badge st-{{ s }}">{{ STATUS_LABELS.get(s, s) }}</span>
+{%- endmacro %}
+
+{% macro kpi(label, value, sub="", cls="", href="") -%}
+<div class="kpi {{ cls }}">
+  {% if href %}<a href="{{ href }}" class="kpi-link">{% endif %}
+  <div class="kpi-label">{{ label }}</div>
+  <div class="kpi-value">{{ value }}</div>
+  {% if sub %}<div class="kpi-sub">{{ sub }}</div>{% endif %}
+  {% if href %}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro pager(page, pages, qs="") -%}
+{% if pages > 1 %}
+<nav class="pager" aria-label="Pagination">
+  {% if page > 1 %}<a class="btn btn-ghost" href="?{{ qs }}{{ '&' if qs }}page={{ page - 1 }}">← Previous</a>{% endif %}
+  <span class="muted">Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}<a class="btn btn-ghost" href="?{{ qs }}{{ '&' if qs }}page={{ page + 1 }}">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro empty(message, action_href="", action_label="") -%}
+<div class="empty">
+  <p>{{ message }}</p>
+  {% if action_href %}<a class="btn" href="{{ action_href }}">{{ action_label }}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro csrf_field() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+{%- endmacro %}
+
+{% macro findings_table(rows, show_select=False, show_cost=False) -%}
+<div class="table-wrap">
+<table class="table">
+  <thead>
+    <tr>
+      {% if show_select %}<th class="col-check"><input type="checkbox" data-select-all aria-label="Select all"></th>{% endif %}
+      <th>Severity</th>
+      <th>Finding</th>
+      <th>Entity</th>
+      {% if show_cost %}<th class="num">Monthly cost</th>{% endif %}
+      <th>Owner</th>
+      <th>Due</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for f in rows %}
+    <tr>
+      {% if show_select %}<td class="col-check"><input type="checkbox" name="ids" value="{{ f.id }}" form="bulk-form" aria-label="Select finding {{ f.id }}"></td>{% endif %}
+      <td>{{ sev(f.severity) }}</td>
+      <td><a href="/findings/{{ f.id }}">{{ f.title }}</a><div class="muted small">{{ f.rule_id }}</div></td>
+      <td>{% if f.link %}<a href="{{ f.link }}">{{ f.entity_name }}</a>{% else %}{{ f.entity_name }}{% endif %}<div class="muted small">{{ f.entity_type }}</div></td>
+      {% if show_cost %}<td class="num">{{ f.monthly_cost|money }}</td>{% endif %}
+      <td>{{ f.owner or "—" }}</td>
+      <td>{% if f.due_date %}<span class="{{ 'text-danger' if f.overdue }}">{{ f.due_date|dt }}</span>{% if f.overdue %}<div class="small text-danger">{{ f.days_overdue }}d overdue</div>{% endif %}{% else %}—{% endif %}</td>
+      <td>{{ status(f.status) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{%- endmacro %}

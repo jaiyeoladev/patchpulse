@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "macros.html" import sev, status, csrf_field with context %}
+{% block title %}Finding #{{ f.id }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/findings">Findings</a> / #{{ f.id }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ f.title }}</h1>
+    <p>{{ sev(f.severity) }} {{ status(f.status) }} <span class="muted">{{ f.rule_id }}{% if rule %} · {{ rule.category }}{% endif %}</span></p>
+  </div>
+</div>
+
+<div class="grid grid-2-1">
+  <section class="card">
+    <h2>What we found</h2>
+    <dl class="kv">
+      <dt>Entity</dt><dd>{% if f.link %}<a href="{{ f.link }}">{{ f.entity_name }}</a>{% else %}{{ f.entity_name }}{% endif %} <span class="muted">({{ f.entity_type }})</span></dd>
+      <dt>Identifier</dt><dd><code>{{ f.entity_id }}</code></dd>
+      {% if f.monthly_cost %}<dt>Monthly cost</dt><dd><strong>{{ f.monthly_cost|money(2) }}</strong> <span class="muted">({{ (f.monthly_cost * 12)|money }} a year)</span></dd>{% endif %}
+      <dt>First seen</dt><dd>{{ f.first_seen|dtt }}</dd>
+      <dt>Last seen</dt><dd>{{ f.last_seen|dtt }}</dd>
+      {% if f.due_date %}<dt>Due</dt><dd class="{{ 'text-danger' if f.overdue }}">{{ f.due_date|dt }}{% if f.overdue %} · {{ f.days_overdue }} days overdue{% endif %}</dd>{% endif %}
+      <dt>Owner</dt><dd>{{ f.owner or "Unassigned" }}</dd>
+      {% if f.status == "accepted" %}
+      <dt>Accepted until</dt><dd>{{ f.accepted_until|dt }}</dd>
+      <dt>Justification</dt><dd>{{ f.justification }}</dd>
+      {% endif %}
+      {% if f.reopen_count %}<dt>Reopened</dt><dd>{{ f.reopen_count }} time(s)</dd>{% endif %}
+    </dl>
+
+    {% if f.details %}
+    <h3>Evidence</h3>
+    <dl class="kv">
+      {% for k, v in f.details.items() %}
+      <dt>{{ k|replace("_", " ")|capitalize }}</dt>
+      <dd>{% if v is mapping or (v is iterable and v is not string) %}<pre class="code">{{ v|pretty }}</pre>{% else %}{{ v }}{% endif %}</dd>
+      {% endfor %}
+    </dl>
+    {% endif %}
+
+    <h3>Recommended action</h3>
+    <p>{{ f.recommendation }}</p>
+    {% if rule %}
+    <h3>Why this matters</h3>
+    <p>{{ rule.description }}</p>
+    {% if rule.reference %}<p class="small muted">Reference: {{ rule.reference }}</p>{% endif %}
+    {% endif %}
+  </section>
+
+  <aside>
+    {% if is_admin %}
+    <section class="card">
+      <h2>Actions</h2>
+      <form method="post" action="/findings/{{ f.id }}/action" class="form inline-form">
+        {{ csrf_field() }}<input type="hidden" name="action" value="assign">
+        <label>Owner <input name="owner" list="owners" value="{{ f.owner or '' }}" placeholder="Team or person"></label>
+        <datalist id="owners">{% for o in owners %}<option value="{{ o }}">{% endfor %}</datalist>
+        <button class="btn btn-sm" type="submit">Save owner</button>
+      </form>
+      <div class="btn-row">
+        {% if f.status == "open" %}
+        <form method="post" action="/findings/{{ f.id }}/action">{{ csrf_field() }}<input type="hidden" name="action" value="acknowledge"><button class="btn btn-ghost btn-sm" type="submit">Mark in progress</button></form>
+        {% endif %}
+        {% if f.status != "resolved" %}
+        <form method="post" action="/findings/{{ f.id }}/action">{{ csrf_field() }}<input type="hidden" name="action" value="resolve"><button class="btn btn-ghost btn-sm" type="submit">Mark resolved</button></form>
+        {% endif %}
+        {% if f.status != "open" %}
+        <form method="post" action="/findings/{{ f.id }}/action">{{ csrf_field() }}<input type="hidden" name="action" value="reopen"><button class="btn btn-ghost btn-sm" type="submit">Reopen</button></form>
+        {% endif %}
+      </div>
+      {% if f.status in ("open", "acknowledged") %}
+      <details class="subtle">
+        <summary>Accept the risk (time-limited exception)</summary>
+        <form method="post" action="/findings/{{ f.id }}/action" class="form">
+          {{ csrf_field() }}<input type="hidden" name="action" value="accept">
+          <label>Justification <textarea name="justification" rows="3" minlength="10" required placeholder="Business reason, compensating controls, approver"></textarea></label>
+          <label>Expires on <input type="date" name="accepted_until" min="{{ today }}" max="{{ max_accept_date }}" value="{{ default_accept_date }}" required></label>
+          <button class="btn btn-sm" type="submit">Accept risk</button>
+          <p class="small muted">The finding reopens automatically when the exception expires.</p>
+        </form>
+      </details>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="card">
+      <h2>History</h2>
+      {% if is_admin %}
+      <form method="post" action="/findings/{{ f.id }}/action" class="form">
+        {{ csrf_field() }}<input type="hidden" name="action" value="comment">
+        <label class="sr-only" for="comment">Comment</label>
+        <textarea id="comment" name="comment" rows="2" placeholder="Add a note (chased owner, ticket number…)"></textarea>
+        <button class="btn btn-ghost btn-sm" type="submit">Add note</button>
+      </form>
+      {% endif %}
+      <ol class="timeline">
+        {% for e in f.events %}
+        <li><span class="small muted">{{ e.ts|dtt }} · {{ e.actor }}</span><div><strong>{{ e.event|replace("_", " ")|capitalize }}</strong> {{ e.detail }}</div></li>
+        {% else %}
+        <li class="muted">No history yet.</li>
+        {% endfor %}
+      </ol>
+    </section>
+  </aside>
+</div>
+{% endblock %}

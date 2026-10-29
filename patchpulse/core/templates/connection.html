@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Connection &amp; permissions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Connection &amp; permissions</h1>
+    <p class="muted">{{ spec.name }} only reads data. It never writes to your tenant or tools.</p>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Current mode</h2>
+    {% if config.demo_mode %}
+    <p><span class="badge mode-demo">Demo</span> The app is using realistic synthetic data. Set <code>DEMO_MODE=false</code> and the variables below to connect to a real tenant.</p>
+    {% else %}
+    <p><span class="badge mode-live">Live</span> Reading from your tenant.</p>
+    {% endif %}
+    <dl class="kv">
+      <dt>Microsoft Graph</dt>
+      <dd>{% if config.graph_configured %}<span class="text-ok">Configured</span> · tenant <code>{{ config.tenant_id[:8] }}…</code> · app <code>{{ config.client_id[:8] }}…</code>{% else %}<span class="muted">Not configured</span>{% endif %}</dd>
+    </dl>
+    {% if missing %}
+    <div class="alert alert-warn">Missing for live mode: {{ missing|join(", ") }}</div>
+    {% elif not config.demo_mode %}
+    <div class="alert alert-success">All required settings are present.</div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Microsoft Graph application permissions</h2>
+    <p>Grant these <strong>application</strong> permissions (read-only) to an Entra ID app registration and give admin consent:</p>
+    <ul class="checklist">
+      {% for p in spec.graph_permissions %}<li><code>{{ p }}</code></li>{% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="card">
+  <h2>Set up an app registration</h2>
+  <ol class="steps">
+    <li>In the Entra admin centre go to <strong>Identity → Applications → App registrations → New registration</strong>. Name it “{{ spec.name }} (read-only)”, single tenant, no redirect URI.</li>
+    <li>Open <strong>API permissions → Add a permission → Microsoft Graph → Application permissions</strong> and add the permissions listed above. Click <strong>Grant admin consent</strong>.</li>
+    <li>Under <strong>Certificates &amp; secrets</strong> create a client secret with a short expiry (for example 6 months) and store it in a secret manager.</li>
+    <li>Set <code>AZURE_TENANT_ID</code>, <code>AZURE_CLIENT_ID</code> and <code>AZURE_CLIENT_SECRET</code> in your environment (or <code>.env</code>), set <code>DEMO_MODE=false</code> and restart.</li>
+    <li>Run a scan from the <a href="/scans">Scans</a> page. Any permission that is missing shows up as a warning on the scan.</li>
+  </ol>
+</section>
+{% include "connection_extra.html" ignore missing %}
+{% endblock %}

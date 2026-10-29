@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "macros.html" import sev, empty %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Vulnerabilities by CVE</h1>
+    <p class="muted">{{ rows|length }} CVE(s) across {{ instances }} open device instances. Due dates follow the SLA in <a href="/settings">Settings</a>.</p>
+  </div>
+  <a class="btn btn-ghost" href="/findings.csv?rule=VUL-001">Export CSV</a>
+</div>
+<form class="filters card" method="get" action="/vulnerabilities">
+  <label>Severity
+    <select name="severity"><option value="">Any</option>{% for s in SEVERITIES %}<option value="{{ s }}" {{ 'selected' if severity == s }}>{{ s|capitalize }}</option>{% endfor %}</select>
+  </label>
+  <label class="check"><input type="checkbox" name="kev" value="1" {{ 'checked' if kev == '1' }}> CISA KEV only</label>
+  <label class="grow">Search <input name="q" value="{{ q }}" placeholder="CVE, product or description"></label>
+  <button class="btn" type="submit">Apply</button>
+</form>
+{% if rows %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>CVE</th><th>Severity</th><th>Affects</th><th class="num">Devices</th><th class="num">Overdue</th><th>Oldest detection</th><th>Next due</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td><a href="/findings?rule=VUL-001&q={{ r.cve }}"><strong>{{ r.cve }}</strong></a>{% if r.kev %} <span class="tag tag-danger">KEV</span>{% endif %}<div class="small muted">CVSS {{ r.cvss if r.cvss is not none else "?" }}</div></td>
+    <td>{{ sev(r.severity) }}</td>
+    <td>{{ r.product }}<div class="small muted">{{ r.title }}</div></td>
+    <td class="num" title="{{ r.hosts[:30]|join(', ') }}">{{ r.hosts|length }}</td>
+    <td class="num {{ 'text-danger' if r.overdue }}">{{ r.overdue }}</td>
+    <td>{{ r.oldest|dt }} <div class="small muted">{{ r.oldest|ago }}</div></td>
+    <td>{{ r.next_due|dt if r.next_due else "—" }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+{{ empty("No open vulnerabilities match.") }}
+{% endif %}
+{% endblock %}

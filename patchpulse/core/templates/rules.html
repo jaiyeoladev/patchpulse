@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import sev %}
+{% block title %}Detection rules{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Detection rules</h1>
+    <p class="muted">Every finding comes from one of these rules. Thresholds are tunable in <a href="/settings">Settings</a>.</p>
+  </div>
+</div>
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Rule</th><th>Default severity</th><th>Category</th><th>What it detects</th><th class="num">Active</th></tr></thead>
+  <tbody>
+  {% for r in rules %}
+  <tr>
+    <td><strong>{{ r.rule_id }}</strong><div>{{ r.title }}</div></td>
+    <td>{{ sev(r.severity) }}</td>
+    <td>{{ r.category }}</td>
+    <td>{{ r.description }}{% if r.reference %}<div class="small muted">{{ r.reference }}</div>{% endif %}</td>
+    <td class="num">{% if counts.get(r.rule_id) %}<a href="/findings?rule={{ r.rule_id }}">{{ counts[r.rule_id] }}</a>{% else %}0{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

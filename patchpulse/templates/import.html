@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Import scanner results</h1>
+    <p class="muted">Bring in vulnerabilities from any scanner that exports CSV (Tenable/Nessus, Qualys, Rapid7, Microsoft Defender Vulnerability Management, OpenVAS). Each import replaces the previous upload with the same source name.</p>
+  </div>
+</div>
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Upload a CSV</h2>
+    {% if is_admin %}
+    <form method="post" action="/import" enctype="multipart/form-data" class="form">
+      {{ csrf_field() }}
+      <label>Source name <input name="source" required maxlength="80" placeholder="e.g. Nessus external scan"></label>
+      <label>CSV file <input type="file" name="file" accept=".csv,text/csv" required></label>
+      <button class="btn" type="submit">Import</button>
+    </form>
+    {% else %}<p class="muted">Read-only accounts cannot import.</p>{% endif %}
+  </section>
+  <section class="card">
+    <h2>Recognised columns</h2>
+    <p class="small muted">Column names are matched case-insensitively. Host and CVE are required; a cell may hold several CVEs separated by commas.</p>
+    <dl class="kv small">
+      {% for field, names in aliases.items() %}<dt>{{ field }}</dt><dd>{{ names|join(", ") }}</dd>{% endfor %}
+    </dl>
+  </section>
+</div>
+<section class="card">
+  <h2>Imported sources</h2>
+  {% if sources %}
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Source</th><th class="num">Rows</th><th class="num">Hosts</th><th>Imported</th><th></th></tr></thead>
+    <tbody>
+    {% for s in sources %}
+    <tr><td>{{ s.source }}</td><td class="num">{{ s.n }}</td><td class="num">{{ s.hosts }}</td><td>{{ s.imported_at|dtt }}</td>
+      <td>{% if is_admin %}<form method="post" action="/import/delete">{{ csrf_field() }}<input type="hidden" name="source" value="{{ s.source }}"><button class="btn btn-ghost btn-sm" type="submit" data-confirm="Remove all rows from this source?">Remove</button></form>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">Nothing imported yet.</p>{% endif %}
+</section>
+{% endblock %}

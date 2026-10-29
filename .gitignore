@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local data and secrets
+data/
+*.db
+*.db-wal
+*.db-shm
+kev-cache.json
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,13 @@
+{% if extra.pp %}
+{% set d = extra.pp %}
+<section class="card">
+  <h2>Endpoint posture</h2>
+  <div class="stat-line"><span>Devices in scope</span><strong>{{ d.devices_total }}</strong></div>
+  <div class="stat-line"><span>Vulnerability SLA compliance</span><strong>{{ d.sla_compliance|pct }} ({{ d.vuln_overdue }} of {{ d.vuln_open }} overdue)</strong></div>
+  <div class="stat-line"><span>Cyber Essentials 14-day breaches (CVSS 7+ overdue)</span><strong>{{ d.ce_breaches }} on {{ d.ce_hosts }} device(s)</strong></div>
+  <div class="stat-line"><span>Open CISA KEV instances</span><strong>{{ d.kev_open }}</strong></div>
+  <div class="stat-line"><span>EDR coverage</span><strong>{{ d.edr_coverage|pct if d.edr_coverage is not none else "—" }}</strong></div>
+  <div class="stat-line"><span>Intune compliance</span><strong>{{ d.compliance|pct if d.compliance is not none else "—" }}</strong></div>
+  <div class="stat-line"><span>Mean time to remediate (90 days)</span><strong>{{ (d.mttr|num(1) ~ " days") if d.mttr is not none else "—" }}</strong></div>
+</section>
+{% endif %}

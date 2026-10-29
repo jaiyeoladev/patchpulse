@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "macros.html" import empty %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Devices</h1>
+    <p class="muted">{{ total }} device(s) · Intune and CrowdStrike Falcon records are joined on device name</p>
+  </div>
+</div>
+<form class="filters card" method="get" action="/devices">
+  <label>Show
+    <select name="view">
+      {% for k, label in [("all","All devices"),("issues","Compliance or coverage issues"),("overdue","Overdue vulnerabilities"),("no_edr","No EDR sensor"),("unmanaged","Not managed by Intune"),("unsupported","Unsupported or ending OS")] %}
+      <option value="{{ k }}" {{ 'selected' if view == k }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Platform
+    <select name="platform"><option value="">Any</option>{% for p in platforms %}<option {{ 'selected' if platform == p }}>{{ p }}</option>{% endfor %}</select>
+  </label>
+  <label class="grow">Search <input name="q" value="{{ q }}" placeholder="Device name or user"></label>
+  <button class="btn" type="submit">Apply</button>
+</form>
+{% if rows %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Device</th><th>Platform / OS</th><th>Intune</th><th>Falcon</th><th class="num">Open vulns</th><th class="num">Overdue</th><th>Issues</th><th>Owner</th></tr></thead>
+  <tbody>
+  {% for d in rows %}
+  <tr>
+    <td><a href="/devices/{{ d.key }}"><strong>{{ d.name }}</strong></a>{% if d.server %} <span class="tag">server</span>{% endif %}<div class="small muted">{{ d.user or "" }}</div></td>
+    <td>{{ d.platform }}<div class="small muted">{{ d.osVersion or d.os }}</div></td>
+    <td>{% if d.intune %}{% set st = d.intune.complianceState|lower %}<span class="tag {{ 'tag-ok' if st == 'compliant' else 'tag-danger' }}">{{ st }}</span><div class="small muted">sync {{ d.intune.lastSync|ago }}</div>{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td>{% if d.falcon %}<span class="tag {{ 'tag-warn' if d.falcon.rfm else 'tag-ok' }}">{{ "RFM" if d.falcon.rfm else "sensor" }}</span><div class="small muted">seen {{ d.falcon.lastSeen|ago }}</div>{% elif sources.falcon and d.platform in ("Windows", "macOS", "Linux") %}<span class="tag tag-danger">missing</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td class="num">{{ d.vulns }}{% if d.crit %} <span class="small text-danger">({{ d.crit }} crit/high)</span>{% endif %}</td>
+    <td class="num {{ 'text-danger' if d.overdue }}">{{ d.overdue }}</td>
+    <td>{% for r in d.rules %}<span class="tag tag-accent">{{ r }}</span>{% else %}<span class="muted">—</span>{% endfor %}</td>
+    <td class="small">{{ d.owner or "—" }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if total > rows|length %}<p class="small muted">Showing the first {{ rows|length }} of {{ total }}.</p>{% endif %}
+{% else %}
+{{ empty("No devices match.") }}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "macros.html" import findings_table %}
+{% block content %}
+<p class="crumbs"><a href="/devices">Devices</a> / {{ d.name }}</p>
+<div class="page-head">
+  <div>
+    <h1>{{ d.name }}</h1>
+    <p><span class="tag">{{ d.platform }}</span>{% if d.server %} <span class="tag">Server</span>{% endif %} <span class="muted">{{ d.osVersion or d.os }}</span></p>
+  </div>
+</div>
+<div class="grid grid-2-1">
+  <div>
+    <section class="card">
+      <h2>Compliance &amp; coverage issues ({{ issues|length }})</h2>
+      {% if issues %}{{ findings_table(issues) }}{% else %}<p class="muted">No compliance or coverage issues.</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Open vulnerabilities ({{ vulns|length }})</h2>
+      {% if vulns %}{{ findings_table(vulns) }}{% else %}<p class="muted">No open vulnerabilities reported.</p>{% endif %}
+    </section>
+  </div>
+  <aside>
+    <section class="card">
+      <h2>Intune</h2>
+      {% if d.intune %}
+      <dl class="kv">
+        <dt>Compliance</dt><dd>{{ d.intune.complianceState }}</dd>
+        <dt>Last check-in</dt><dd>{{ d.intune.lastSync|dtt }} ({{ d.intune.lastSync|ago }})</dd>
+        <dt>Encrypted</dt><dd>{{ "Yes" if d.intune.encrypted else ("No" if d.intune.encrypted is sameas false else "Unknown") }}</dd>
+        <dt>Primary user</dt><dd>{{ d.user or "—" }}</dd>
+        <dt>Ownership</dt><dd>{{ d.intune.ownerType or "—" }}</dd>
+        <dt>Model</dt><dd>{{ d.model or "—" }}</dd>
+        <dt>Serial</dt><dd><code>{{ d.serial or "—" }}</code></dd>
+        <dt>Enrolled</dt><dd>{{ d.intune.enrolled|dt }}</dd>
+      </dl>
+      {% else %}<p class="muted">Not managed by Intune.</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>CrowdStrike Falcon</h2>
+      {% if d.falcon %}
+      <dl class="kv">
+        <dt>Last seen</dt><dd>{{ d.falcon.lastSeen|dtt }} ({{ d.falcon.lastSeen|ago }})</dd>
+        <dt>Sensor version</dt><dd>{{ d.falcon.agentVersion }}</dd>
+        <dt>Reduced functionality</dt><dd>{{ "Yes" if d.falcon.rfm else "No" }}</dd>
+        <dt>Containment</dt><dd>{{ d.falcon.status }}</dd>
+        <dt>Product type</dt><dd>{{ d.falcon.productType or "—" }}</dd>
+        <dt>OS</dt><dd>{{ d.falcon.os }}</dd>
+      </dl>
+      {% else %}<p class="muted">{{ "Only seen in an imported scanner report." if d.scanner_only else "No Falcon sensor found for this device name." }}</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Ownership</h2>
+      <p>{{ d.owner or "No ownership rule matched." }}</p>
+      <p class="small muted">Set by the ownership rules in <a href="/settings">Settings</a>; owners can be changed per finding.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

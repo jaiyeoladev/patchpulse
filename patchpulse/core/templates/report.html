@@ -1,0 +1,62 @@
+{% from "macros.html" import sev, status %}
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ spec.name }} report · {{ generated|dt }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body data-app="{{ spec.slug }}" class="report">
+<main class="container report-page">
+  <div class="report-actions no-print">
+    <a class="btn btn-ghost" href="/">← Back to dashboard</a>
+    <button class="btn" type="button" data-print>Print / save as PDF</button>
+  </div>
+  <header class="report-head">
+    <img src="/static/icon-{{ spec.slug }}.svg" alt="" width="40" height="40">
+    <div>
+      <h1>{{ spec.name }} — summary report</h1>
+      <p class="muted">Generated {{ generated|dtt }} UTC · data from scan #{{ scan.id if scan else "—" }} ({{ scan.started_at|dtt if scan else "no scan yet" }}) · {{ "demo data" if config.demo_mode else "live tenant data" }}</p>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi"><div class="kpi-label">Active findings</div><div class="kpi-value">{{ summary.active }}</div></div>
+    <div class="kpi"><div class="kpi-label">Critical / high</div><div class="kpi-value">{{ summary.by_severity.critical + summary.by_severity.high }}</div></div>
+    <div class="kpi"><div class="kpi-label">Risk accepted</div><div class="kpi-value">{{ summary.by_status.accepted }}</div></div>
+    {% if summary.monthly_cost %}<div class="kpi"><div class="kpi-label">Identified waste</div><div class="kpi-value">{{ summary.monthly_cost|money }}<span class="unit">/mo</span></div><div class="kpi-sub">{{ (summary.monthly_cost * 12)|money }} a year</div></div>{% endif %}
+  </section>
+
+  {% include "report_extra.html" ignore missing %}
+
+  <section class="card">
+    <h2>Findings by rule</h2>
+    <table class="table">
+      <thead><tr><th>Rule</th><th>Description</th><th class="num">Active</th>{% if summary.monthly_cost %}<th class="num">Monthly cost</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for r in summary.by_rule %}
+      <tr><td>{{ r.rule_id }}</td><td>{{ spec.rules[r.rule_id].title if r.rule_id in spec.rules else "" }}</td><td class="num">{{ r.n }}</td>{% if summary.monthly_cost %}<td class="num">{{ r.cost|money }}</td>{% endif %}</tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No active findings.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Top {{ top|length }} priorities</h2>
+    <table class="table">
+      <thead><tr><th>Severity</th><th>Finding</th><th>Entity</th><th>Owner</th><th>Due</th><th>Recommended action</th></tr></thead>
+      <tbody>
+      {% for f in top %}
+      <tr><td>{{ sev(f.severity) }}</td><td>{{ f.title }}<div class="small muted">{{ f.rule_id }}</div></td><td>{{ f.entity_name }}</td><td>{{ f.owner or "—" }}</td><td class="{{ 'text-danger' if f.overdue }}">{{ f.due_date|dt if f.due_date else "—" }}</td><td class="small">{{ f.recommendation }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <p class="small muted">This report was produced by {{ spec.name }} from read-only data. Figures marked as costs use the prices configured in the application and are estimates, not invoices.</p>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

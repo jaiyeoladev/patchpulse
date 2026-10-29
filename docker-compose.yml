@@ -1,0 +1,19 @@
+services:
+  patchpulse:
+    build: .
+    image: patchpulse:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - patchpulse-data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  patchpulse-data:

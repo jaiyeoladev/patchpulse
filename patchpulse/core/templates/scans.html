@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field, empty with context %}
+{% block title %}Scans{% endblock %}
+{% block head %}{% if scan_running %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Scans</h1>
+    <p class="muted">Each scan reads your data (read-only), re-runs every rule and updates findings.
+      {% if config.scan_interval_hours %}Scheduled every {{ config.scan_interval_hours|num(1) }} hours.{% else %}Set <code>SCAN_INTERVAL_HOURS</code> to schedule scans.{% endif %}</p>
+  </div>
+  {% if is_admin %}
+  <form method="post" action="/scans/run">{{ csrf_field() }}
+    <button class="btn" type="submit" {{ 'disabled' if scan_running or missing }}>{{ "Scan running…" if scan_running else "Run scan now" }}</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if missing %}
+<div class="alert alert-warn">Live mode needs more configuration before it can scan: {{ missing|join(", ") }}. See <a href="/connection">Connection &amp; permissions</a>.</div>
+{% endif %}
+
+{% if scans %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>#</th><th>Started</th><th>Mode</th><th>Trigger</th><th>Status</th><th class="num">Findings</th><th class="num">New</th><th class="num">Resolved</th><th class="num">Reopened</th><th>Duration</th><th>Notes</th></tr></thead>
+  <tbody>
+  {% for s in scans %}
+  <tr>
+    <td>{{ s.id }}</td>
+    <td>{{ s.started_at|dtt }}</td>
+    <td>{{ s.mode }}</td>
+    <td>{{ s.trigger }} <span class="muted small">by {{ s.actor }}</span></td>
+    <td><span class="badge scan-{{ s.status }}">{{ s.status }}</span></td>
+    <td class="num">{{ s.stats.findings if s.stats.findings is defined else "—" }}</td>
+    <td class="num">{{ s.stats.new if s.stats.new is defined else "—" }}</td>
+    <td class="num">{{ s.stats.resolved if s.stats.resolved is defined else "—" }}</td>
+    <td class="num">{{ s.stats.reopened if s.stats.reopened is defined else "—" }}</td>
+    <td>{{ s.stats.duration_s ~ "s" if s.stats.duration_s is defined else "—" }}</td>
+    <td class="small">
+      {% if s.error %}<span class="text-danger">{{ s.error }}</span>{% endif %}
+      {% for w in s.stats.warnings or [] %}<div class="text-warn">⚠ {{ w }}</div>{% endfor %}
+      {% if s.stats.counts %}<div class="muted">{% for k, v in s.stats.counts.items() %}{{ k|replace("_"," ") }}: {{ v }}{{ ", " if not loop.last }}{% endfor %}</div>{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+{{ empty("No scans yet. Run your first scan to populate the dashboard.") }}
+{% endif %}
+{% endblock %}

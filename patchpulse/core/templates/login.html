@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf_field with context %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="login">
+  <div class="login-card card">
+    <div class="login-brand">
+      <img src="/static/icon-{{ spec.slug }}.svg" alt="" width="44" height="44">
+      <div>
+        <h1>{{ spec.name }}</h1>
+        <p class="muted">{{ spec.tagline }}</p>
+      </div>
+    </div>
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="/login" class="form">
+      {{ csrf_field() }}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>Username <input name="username" autocomplete="username" required autofocus></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn btn-block" type="submit">Sign in</button>
+    </form>
+    {% if config.demo_mode %}
+    <p class="muted small login-note">Demo mode uses synthetic data. Default demo sign-in is set in your <code>.env</code> (see README).</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

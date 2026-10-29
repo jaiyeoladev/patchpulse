@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "macros.html" import kpi, sev, empty %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{% if not scan %}
+  {{ empty("No completed scan yet. Run a scan to see your endpoint and patching posture.", "/scans", "Go to scans") }}
+{% else %}
+<div class="page-head">
+  <div>
+    <h1>Endpoint &amp; vulnerability posture</h1>
+    <p class="muted">Scan #{{ scan.id }} · {{ scan.started_at|dtt }} · {{ devices_total }} devices ·
+      sources: {% if sources.intune %}Intune{% endif %}{% if sources.falcon %}{{ ", " if sources.intune }}CrowdStrike Falcon{% endif %}{% if sources.csv_rows %}, {{ sources.csv_rows }} imported scanner rows{% endif %}</p>
+  </div>
+  <a class="btn btn-ghost" href="/report" target="_blank" rel="noopener">Printable report</a>
+</div>
+
+<section class="kpis">
+  {{ kpi("SLA compliance", sla_compliance|pct, vuln_overdue ~ " of " ~ vuln_open ~ " open vulnerabilities overdue", "kpi-danger" if sla_compliance < 0.9 else "kpi-ok", "/findings?rule=VUL-001&overdue=1&sort=due") }}
+  {{ kpi("Cyber Essentials 14-day", ce_breaches, "CVSS 7+ overdue on " ~ ce_hosts ~ " device(s)", "kpi-danger" if ce_breaches else "kpi-ok", "/findings?rule=VUL-001&overdue=1") }}
+  {{ kpi("EDR coverage", edr_coverage|pct if edr_coverage is not none else "—", edr_missing ~ " eligible device(s) without Falcon", "kpi-warn" if edr_missing else "kpi-ok", "/devices?view=no_edr") }}
+  {{ kpi("Intune compliance", compliance|pct if compliance is not none else "—", noncompliant ~ " not compliant · encryption " ~ (encryption|pct if encryption is not none else "—"), "", "/findings?rule=EPC-001") }}
+  {{ kpi("Known exploited (KEV)", kev_open, "open KEV instances", "kpi-danger" if kev_open else "kpi-ok", "/vulnerabilities?kev=1") }}
+  {{ kpi("Mean time to remediate", (mttr|num(1) ~ " days") if mttr is not none else "—", "vulnerabilities fixed in the last 90 days", "") }}
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Open vulnerabilities by severity</h2><a class="small" href="/vulnerabilities">By CVE →</a></div>
+  {{ charts.stacked(sev_segments) }}
+  <div class="legend"><span class="l-critical">Critical {{ sev_counts.critical or 0 }}</span><span class="l-high">High {{ sev_counts.high or 0 }}</span><span class="l-medium">Medium {{ sev_counts.medium or 0 }}</span><span class="l-low">Low {{ sev_counts.low or 0 }}</span></div>
+</section>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Open vulnerabilities — last 8 weeks</h2>
+    {{ charts.columns(trend) }}
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Overdue by owner</h2><a class="small" href="/owners">Chase list →</a></div>
+    {{ charts.hbar(by_owner, empty="Nothing overdue") }}
+  </section>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Priority CVEs</h2><a class="small" href="/vulnerabilities">All →</a></div>
+    <div class="table-wrap">
+    <table class="table compact">
+      <thead><tr><th>CVE</th><th>Severity</th><th class="num">Devices</th><th class="num">Overdue</th></tr></thead>
+      <tbody>
+      {% for c in top_cves %}
+      <tr><td><a href="/findings?rule=VUL-001&q={{ c.cve }}">{{ c.cve }}</a>{% if c.kev %} <span class="tag tag-danger">KEV</span>{% endif %}<div class="small muted">CVSS {{ c.cvss if c.cvss is not none else "?" }}</div></td><td>{{ sev(c.severity) }}</td><td class="num">{{ c.hosts }}</td><td class="num {{ 'text-danger' if c.overdue }}">{{ c.overdue }}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">No open vulnerabilities.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Riskiest devices</h2><a class="small" href="/devices">Devices →</a></div>
+    {{ charts.hbar(top_devices) }}
+    <p class="small muted">Weighted by severity of open findings; KEV vulnerabilities count double.</p>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>Device compliance and coverage issues</h2><a class="small" href="/devices?view=issues">Devices with issues →</a></div>
+  {{ charts.hbar(device_issues, width=1200, label_width=320, empty="No device issues") }}
+</section>
+{% endif %}
+{% endblock %}
